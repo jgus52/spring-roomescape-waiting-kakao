@@ -122,18 +122,6 @@ public class ReservationDao {
         }
     }
 
-    public Reservation acceptReservation(Long id) {
-        Reservation reservation = findByIdForUpdate(id);
-
-        String updateSql = "UPDATE reservation SET state='ACCEPTED' where id = ?;";
-        jdbcTemplate.update(updateSql, id);
-
-        String salesSql = "INSERT INTO sales (reservation_id, refunded) VALUES (?,false);";
-        jdbcTemplate.update(salesSql, id);
-
-        return new Reservation(reservation.getId(), reservation.getSchedule(), reservation.getMember(), ReservationState.ACCEPTED);
-    }
-
     public Reservation updateState(Long id, ReservationState state) {
         Reservation reservation = findByIdForUpdate(id);
         String updateSql = "UPDATE reservation SET state=? where id = ?;";

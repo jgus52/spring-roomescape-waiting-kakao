@@ -1,6 +1,7 @@
 package nextstep.domain.reservation;
 
 import auth.exception.AuthorizationException;
+import nextstep.domain.sales.Sales;
 import nextstep.domain.sales.SalesDao;
 import nextstep.domain.schedule.Schedule;
 import nextstep.error.ErrorCode;
@@ -19,14 +20,17 @@ public class ReservationManager {
         this.salesDao = salesDao;
     }
 
-    public Reservation acceptReservation(Long id) {
+    public synchronized Reservation acceptReservation(Long id) {
         Reservation reservation = reservationDao.findById(id);
 
         if (Objects.isNull(reservation)) throw new EntityNotFoundException(ErrorCode.RESERVATION_NOT_FOUND);
         if (!reservation.getState().equals(ReservationState.UNACCEPTED))
             throw new IllegalStateException("얘약 승인 대기 상태가 아닙니다");
 
-        return reservationDao.acceptReservation(id);
+        Reservation acceptedReservation = reservationDao.updateState(id, ReservationState.ACCEPTED);
+        salesDao.save(new Sales(acceptedReservation, false));
+
+        return acceptedReservation;
     }
 
     public Reservation cancelReservation(Long memberId, Long id) {
@@ -80,7 +84,7 @@ public class ReservationManager {
         Reservation result = reservationDao.updateState(id, ReservationState.REJECTED);
 
         updateWaiting(result.getSchedule());
-        
+
         return result;
     }
 
